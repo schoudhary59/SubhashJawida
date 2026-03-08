@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<meta name="theme-color" content="#070d1a"/>
+<title>SafeStreet AI — Montgomery, AL</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg0:#060b17;--bg1:#0a1220;--bg2:#0e1a2e;--bg3:#13223d;
+  --bd0:#1a2d47;--bd1:#1e3a5f;--bd2:#2a4a73;
+  --tx0:#f0f6ff;--tx1:#8fadc8;--tx2:#4a6785;--tx3:#2a3f54;
+  --red:#e84040;--red2:#ff6060;--redglow:rgba(232,64,64,0.4);
+  --grn:#22d47a;--grn2:#15a85c;--grndark:#0a2918;
+  --amb:#f5a623;--amb2:#ffcc55;--ambdark:#291800;
+  --blu:#3b8bff;--blu2:#60a5fa;--bludark:#0a1a3d;
+  --pur:#9b5cf6;--teal:#14b8a6;
+  --font:'Syne',sans-serif;--mono:'DM Mono',monospace;
+}
+html,body,#root{height:100%;background:var(--bg0);color:var(--tx0);font-family:var(--font);overflow:hidden}
+*::-webkit-scrollbar{width:3px}*::-webkit-scrollbar-thumb{background:var(--bd1);border-radius:2px}
+.page{height:calc(100dvh - 58px);overflow-y:auto;position:relative;overscroll-behavior:contain}
+.map-page{height:calc(100dvh - 58px);position:relative;overflow:hidden}
+/* NAV */
+.nav{display:flex;background:var(--bg1);border-top:1px solid var(--bd0);height:58px;padding-bottom:env(safe-area-inset-bottom);z-index:200;flex-shrink:0}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:0;cursor:pointer;padding:6px 2px;position:relative}
+.nav-btn .ni{font-size:18px;transition:transform .2s}
+.nav-btn .nl{font-size:8px;font-weight:800;letter-spacing:.6px;color:var(--tx2);font-family:var(--font)}
+.nav-btn.on .nl{color:var(--blu2)}
+.nav-btn.on .ni{transform:translateY(-2px)}
+.nav-btn .n-dot{position:absolute;top:6px;right:calc(50% - 14px);width:6px;height:6px;border-radius:50%;background:var(--red);animation:blink 1.5s infinite}
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--bd0);border-radius:14px;padding:16px}
+.card-sm{background:var(--bg2);border:1px solid var(--bd0);border-radius:10px;padding:12px}
+.glass{background:rgba(6,11,23,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(30,58,95,.7);border-radius:12px}
+/* INPUTS */
+.inp{width:100%;background:var(--bg1);border:1px solid var(--bd1);border-radius:10px;padding:12px 14px;color:var(--tx0);font-family:var(--font);font-size:14px;outline:none;transition:border .2s}
+.inp:focus{border-color:var(--blu)}
+.inp::placeholder{color:var(--tx2)}
+/* BUTTONS */
+.btn{width:100%;padding:14px;border:none;border-radius:10px;color:#fff;font-weight:800;font-size:14px;cursor:pointer;font-family:var(--font);transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:active{transform:scale(.97)}
+.btn-blue{background:var(--blu)}
+.btn-blue:hover{background:#2563eb}
+.btn-green{background:var(--grn2)}
+.btn-red{background:var(--red)}
+.btn-ghost{background:transparent;border:1px solid var(--bd1);color:var(--tx1)}
+.btn:disabled{background:var(--bd0);color:var(--tx2);cursor:not-allowed}
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:.4px}
+.b-red{background:rgba(232,64,64,.15);color:var(--red2)}
+.b-grn{background:rgba(34,212,122,.15);color:var(--grn)}
+.b-amb{background:rgba(245,166,35,.15);color:var(--amb2)}
+.b-blu{background:rgba(59,139,255,.15);color:var(--blu2)}
+.b-pur{background:rgba(155,92,246,.15);color:var(--pur)}
+/* SOS BUTTON */
+.sos-btn{position:fixed;top:14px;right:14px;z-index:1000;width:58px;height:58px;border-radius:50%;background:var(--red);border:3px solid var(--red2);color:#fff;font-weight:900;font-size:12px;letter-spacing:1px;cursor:pointer;font-family:var(--font);box-shadow:0 0 24px var(--redglow),0 0 0 0 var(--red);display:flex;align-items:center;justify-content:center;transition:all .2s;user-select:none}
+.sos-btn.counting{animation:sosPulse .6s infinite alternate;border-color:#fff}
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes sosPulse{from{box-shadow:0 0 20px var(--redglow)}to{box-shadow:0 0 50px rgba(255,80,80,.8),0 0 80px rgba(255,0,0,.3)}}
+@keyframes alertGlow{from{border-color:rgba(232,64,64,.2);box-shadow:none}to{border-color:var(--red);box-shadow:0 0 30px rgba(232,64,64,.3)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes wave{0%,80%,100%{transform:scaleY(.5);opacity:.4}40%{transform:scaleY(1);opacity:1}}
+@keyframes bpmPulse{0%{transform:scale(1)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
+@keyframes ripple{from{transform:scale(.8);opacity:.8}to{transform:scale(2.5);opacity:0}}
+@keyframes barGrow{from{height:0}to{height:var(--h)}}
+@keyframes dialFill{from{stroke-dashoffset:var(--start)}to{stroke-dashoffset:var(--end)}}
+@keyframes statusIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+.fade-up{animation:fadeUp .35s ease both}
+.slide-in{animation:slideIn .3s ease both}
+/* STATUS ROWS */
+.st-row{display:flex;align-items:center;gap:12px;padding:13px;border-radius:12px;border:1px solid var(--bd0);background:var(--bg1);transition:all .6s}
+.st-row.active{background:rgba(245,166,35,.06);border-color:rgba(245,166,35,.3);animation:alertGlow 1.5s ease infinite alternate}
+.st-row.done{background:var(--grndark);border-color:rgba(34,212,122,.25)}
+/* SPINNER */
+.spin{width:18px;height:18px;border:2px solid var(--bd1);border-top-color:var(--blu);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+/* RISK COLORS */
+.r-low{color:var(--grn)}.r-mod{color:var(--amb)}.r-high{color:var(--red)}.r-crit{color:#ff2020}
+/* CHIP */
+.chip{padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;background:var(--bg3);border:1px solid var(--bd1);color:var(--tx1);cursor:pointer;white-space:nowrap;transition:all .15s}
+.chip:hover{border-color:var(--blu2);color:var(--blu2)}
+/* MAP MARKERS override */
+.leaflet-popup-content-wrapper{background:var(--bg2)!important;border:1px solid var(--bd1)!important;border-radius:10px!important;color:var(--tx0)!important;box-shadow:0 4px 20px rgba(0,0,0,.5)!important}
+.leaflet-popup-tip{background:var(--bg2)!important}
+.leaflet-popup-close-button{color:var(--tx1)!important}
+/* BPM DISPLAY */
+.bpm-num{font-family:var(--mono);font-size:52px;font-weight:500;line-height:1;transition:all .3s}
+.bpm-wave{display:flex;align-items:center;gap:2px;height:30px}
+.bpm-bar{width:3px;border-radius:2px;background:var(--grn);animation:wave 1.2s ease-in-out infinite}
+/* CAMERA */
+#health-video{width:100%;border-radius:12px;object-fit:cover;transform:scaleX(-1)}
+.cam-overlay{position:relative}
+.cam-overlay::after{content:'';position:absolute;inset:0;border-radius:12px;border:2px solid var(--grn);animation:alertGlow 2s ease infinite alternate;pointer-events:none}
+.cam-overlay.warning::after{border-color:var(--red)}
+/* NEARBY CARD */
+.nearby-item{display:flex;gap:12px;padding:12px;background:var(--bg1);border:1px solid var(--bd0);border-radius:10px;cursor:pointer;transition:all .2s;align-items:center}
+.nearby-item:hover{border-color:var(--bd2);background:var(--bg3)}
+.nearby-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+/* SECTION HEADER */
+.sec-hdr{font-size:10px;font-weight:800;letter-spacing:1.2px;color:var(--tx2);margin-bottom:10px}
+/* TABS */
+.tabs{display:flex;gap:4px;background:var(--bg1);padding:4px;border-radius:10px;margin-bottom:16px}
+.tab{flex:1;padding:8px 4px;border:none;background:0;border-radius:7px;font-family:var(--font);font-size:11px;font-weight:700;color:var(--tx2);cursor:pointer;transition:all .2s}
+.tab.on{background:var(--bg2);color:var(--tx0);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+/* CHECKLIST */
+.chk-item{display:flex;gap:12px;padding:12px;border-radius:10px;cursor:pointer;border:1px solid var(--bd0);background:var(--bg1);transition:all .2s;align-items:flex-start}
+.chk-item.done{background:var(--grndark);border-color:rgba(34,212,122,.2)}
+.chk-box{width:20px;height:20px;border-radius:5px;border:2px solid var(--bd2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;margin-top:1px}
+.chk-item.done .chk-box{background:var(--grn);border-color:var(--grn)}
+/* CHAT */
+.msg{padding:11px 14px;border-radius:12px;font-size:13px;line-height:1.6;max-width:88%;animation:fadeUp .25s ease}
+.msg.usr{background:var(--bludark);border:1px solid var(--bd2);margin-left:auto}
+.msg.ai{background:var(--bg2);border:1px solid var(--bd0)}
+/* CHART */
+.chart-wrap{display:flex;align-items:flex-end;gap:3px}
+.c-bar{border-radius:3px 3px 0 0;transition:height 1s ease;min-height:3px}
+/* PROGRESS */
+.prog-track{height:5px;background:var(--bg1);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;transition:width .6s ease}
+/* HOTSPOT ROW */
+.hs-row{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd0)}
+.hs-row:last-child{border-bottom:none}
+.hs-score{font-family:var(--mono);font-size:22px;font-weight:500;min-width:38px;text-align:center}
+/* EMERGENCY BG */
+.em-bg{background:radial-gradient(ellipse at center,#150505 0%,var(--bg0) 70%)}
+/* HEALTH MONITOR BG */
+.hm-bg{background:radial-gradient(ellipse at top,#050d1a 0%,var(--bg0) 60%)}
+/* PULSE RING */
+.pulse-ring{position:absolute;border-radius:50%;animation:ripple 1.5s ease-out infinite}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useRef,useCallback,useMemo}=React;
+
+/* ═══════════════════ STATIC DATA ═══════════════════ */
+const CENTER=[32.3792,-86.3077];
+
+const CORRIDORS=[
+  {lat:32.3829,lng:-86.2389,w:.9,name:'Atlanta Hwy & Eastern Blvd',count:43},
+  {lat:32.3720,lng:-86.2510,w:.8,name:'Zelda Rd Corridor',count:27},
+  {lat:32.3089,lng:-86.2778,w:.7,name:'Bell Rd & Atlanta Hwy',count:31},
+  {lat:32.3656,lng:-86.2944,w:.75,name:'Ray Thornton Dr',count:22},
+  {lat:32.3792,lng:-86.3077,w:.6,name:'Downtown Ann St',count:15},
+  {lat:32.4012,lng:-86.2650,w:.65,name:'Northern Blvd',count:18},
+  {lat:32.3650,lng:-86.3350,w:.7,name:'Mobile Hwy',count:20},
+  {lat:32.3510,lng:-86.2614,w:.8,name:'Eastern Blvd S',count:29},
+  {lat:32.3900,lng:-86.2900,w:.55,name:'Fairview Ave',count:12},
+  {lat:32.3440,lng:-86.3120,w:.6,name:'S Court St',count:16},
+];
+
+function genAccidents(){
+  const pts=[];
+  CORRIDORS.forEach(({lat,lng,w})=>{
+    const n=Math.floor(w*60+20);
+    for(let i=0;i<n;i++) pts.push([lat+(Math.random()-.5)*.025,lng+(Math.random()-.5)*.025,w*.8+Math.random()*.2]);
+  });
+  return pts;
+}
+const HEAT_PTS=genAccidents();
+
+const HOSPITALS=[
+  {id:'h1',name:'Baptist Health Montgomery',addr:'2105 E South Blvd',dist:'1.2 mi',eta:'4 min',phone:'(334) 286-2000',lat:32.3201,lng:-86.1726,type:'hospital',trauma:true},
+  {id:'h2',name:'Jackson Hospital & Clinic',addr:'1725 Pine St',dist:'2.8 mi',eta:'8 min',phone:'(334) 293-8000',lat:32.3689,lng:-86.2986,type:'hospital',trauma:true},
+  {id:'h3',name:'Baptist East Medical Center',addr:'400 Taylor Rd',dist:'4.1 mi',eta:'12 min',phone:'(334) 277-8330',lat:32.3617,lng:-86.1983,type:'hospital',trauma:false},
+  {id:'h4',name:'Jackson South',addr:'1722 Pine St',dist:'3.0 mi',eta:'9 min',phone:'(334) 293-9000',lat:32.3500,lng:-86.2900,type:'hospital',trauma:false},
+];
+
+const POLICE=[
+  {id:'p1',name:'MPD Headquarters',addr:'320 N Ripley St',dist:'0.8 mi',eta:'3 min',phone:'(334) 241-2651',lat:32.3797,lng:-86.3012,type:'police'},
+  {id:'p2',name:'East Precinct',addr:'4725 Commercial Park Dr',dist:'3.1 mi',eta:'9 min',phone:'(334) 241-2651',lat:32.3650,lng:-86.1980,type:'police'},
+  {id:'p3',name:'North Precinct',addr:'3500 N Court St',dist:'2.4 mi',eta:'7 min',phone:'(334) 241-2651',lat:32.4100,lng:-86.2950,type:'police'},
+  {id:'p4',name:'South Precinct',addr:'7150 Senators Dr',dist:'4.8 mi',eta:'14 min',phone:'(334) 241-2651',lat:32.2950,lng:-86.2450,type:'police'},
+];
+
+const HAZARDS=[
+  {id:1,type:'weather',sev:'high',desc:'Heavy rain advisory — NWS. Reduced visibility on Atlanta Hwy.',icon:'🌧️',time:'8 min ago',src:'weather.gov'},
+  {id:2,type:'accident',sev:'critical',desc:'Injury crash Atlanta Hwy & Eastern Blvd. 2 lanes blocked.',icon:'🚨',time:'21 min ago',src:'WSFA12'},
+  {id:3,type:'construction',sev:'medium',desc:'Lane closure I-85 N near Exit 6. Delays until 6 PM.',icon:'🚧',time:'1 hr ago',src:'AL DOT'},
+  {id:4,type:'advisory',sev:'low',desc:'Marathon route closures Sunday 6AM–2PM downtown.',icon:'📢',time:'2 hr ago',src:'City of Montgomery'},
+];
+
+const RESPONDERS=[
+  {name:'K. Williams, RN',training:'RN / CPR Certified',dist:'0.3 mi',eta:'2 min'},
+  {name:'M. Johnson',training:'First Aid + CPR',dist:'0.5 mi',eta:'3 min'},
+];
+
+const WEEKLY=[
+  {d:'Mon',n:12},{d:'Tue',n:8},{d:'Wed',n:15},
+  {d:'Thu',n:11},{d:'Fri',n:22},{d:'Sat',n:19},{d:'Sun',n:7}
+];
+const HOURLY=Array.from({length:24},(_,h)=>({h,n:(h>=7&&h<=9)||(h>=16&&h<=18)?Math.floor(Math.random()*18+12):h<=5?Math.floor(Math.random()*4+1):Math.floor(Math.random()*8+3)}));
+const HOTSPOTS=[
+  {loc:'Atlanta Hwy & Eastern Blvd',score:87,n:43},
+  {loc:'Bell Rd & Atlanta Hwy',score:74,n:31},
+  {loc:'Zelda Rd & Taylor Rd',score:68,n:27},
+  {loc:'Ray Thornton Dr & US-80',score:61,n:22},
+  {loc:'Mobile Hwy & Upper Wetumpka',score:55,n:18},
+];
+
+const GEMINI_MOCK=[
+  {score:73,level:'HIGH',color:'var(--red)',exp:"Route passes Atlanta Hwy & Eastern Blvd — Montgomery's #1 accident hotspot. Rain advisory and PM rush hour significantly elevate risk.",risks:['🌧️ Active rain advisory — wet roads','🕐 Peak rush hour 5:00–6:30 PM','⚠️ High-crash intersection at Eastern Blvd'],rec:"Consider I-65 S ramp via Eastern Blvd to bypass Atlanta Hwy corridor.",alt:true},
+  {score:41,level:'MODERATE',color:'var(--amb)',exp:"Route has moderate historical crash density. Rain advisory adds some risk but no active incidents on this corridor.",risks:['🌧️ Light rain expected en route','🚧 Construction slowdown near Exit 6','🌙 Reduced visibility after sunset'],rec:"Stay within speed limit and increase following distance on wet roads.",alt:false},
+  {score:18,level:'LOW',color:'var(--grn)',exp:"This route has minimal historical crash density and no active hazards. Clear driving conditions expected.",risks:['✅ No active incidents reported','📍 Low historical crash density','☀️ Clear weather forecast'],rec:"Safe to proceed. Enjoy your drive!",alt:false},
+];
+
+function riskColor(s){return s>75?'var(--red)':s>55?'var(--amb)':'var(--grn)'}
+function navUrl(lat,lng){return`https://www.google.com/maps/dir/Current+Location/${lat},${lng}`}
+
+/* ═══════════════════ SOS BUTTON ═══════════════════ */
+function SOSBtn({onTrigger}){
+  const[hold,setHold]=useState(false);
+  const[cnt,setCnt]=useState(3);
+  const ref=useRef(null);
+  function start(e){e.preventDefault();setHold(true);setCnt(3);ref.current=setInterval(()=>{setCnt(c=>{if(c<=1){clearInterval(ref.current);setHold(false);onTrigger();return 3}return c-1})},1000)}
+  function stop(){if(ref.current)clearInterval(ref.current);setHold(false);setCnt(3)}
+  return(<button className={`sos-btn${hold?' counting':''}`}
+    onMouseDown={start}onMouseUp={stop}onMouseLeave={stop}
+    onTouchStart={start}onTouchEnd={stop}
+    style={{fontSize:hold?22:12,background:hold?`conic-gradient(var(--red2) ${(3-cnt)/3*360}deg,#4a0000 0deg)`:undefined}}>
+    {hold?cnt:'SOS'}
+  </button>);
+}
+
+/* ═══════════════════ SCREEN 1: MAP HOME ═══════════════════ */
+function MapHome({setPage}){
+  const mapRef=useRef(null);
+  const inst=useRef(null);
+  const[layers,setLayers]=useState({hospitals:true,police:true,hazards:true});
+  const hosMarkers=useRef([]);
+  const polMarkers=useRef([]);
+  const[activeAlert,setActiveAlert]=useState(null);
+  const[showLayers,setShowLayers]=useState(false);
+
+  useEffect(()=>{
+    if(inst.current)return;
+    const m=L.map('the-map',{zoomControl:false,attributionControl:false}).setView(CENTER,12);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(m);
+    L.control.attribution({prefix:'©OSM ©CARTO',position:'bottomright'}).addTo(m);
+    L.heatLayer(HEAT_PTS,{radius:26,blur:18,maxZoom:17,gradient:{0.2:'#22d47a',0.5:'#f5a623',0.75:'#f97316',1:'#e84040'}}).addTo(m);
+    inst.current=m;
+    addServiceMarkers(m);
+    return()=>{};
+  },[]);
+
+  function addServiceMarkers(m){
+    // Hospitals
+    HOSPITALS.forEach(h=>{
+      const icon=L.divIcon({html:`<div style="width:32px;height:32px;background:#e84040;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid #ff6060;box-shadow:0 0 12px rgba(232,64,64,.5)">🏥</div>`,iconSize:[32,32],iconAnchor:[16,16],className:''});
+      const mk=L.marker([h.lat,h.lng],{icon}).addTo(m);
+      mk.bindPopup(`<div style="font-family:Syne,sans-serif;min-width:180px"><b style="color:#f0f6ff;font-size:13px">${h.name}</b><br><span style="color:#8fadc8;font-size:11px">📍 ${h.addr}</span><br><span style="color:#22d47a;font-size:11px">⏱ ${h.eta} away</span><br><a href="${navUrl(h.lat,h.lng)}" target="_blank" style="display:block;margin-top:8px;padding:6px;background:#1e3a5f;border-radius:6px;color:#60a5fa;text-align:center;font-size:12px;text-decoration:none;font-weight:700">📍 Navigate</a></div>`);
+      hosMarkers.current.push(mk);
+    });
+    // Police
+    POLICE.forEach(p=>{
+      const icon=L.divIcon({html:`<div style="width:32px;height:32px;background:#1e3a5f;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid #3b8bff;box-shadow:0 0 12px rgba(59,139,255,.5)">👮</div>`,iconSize:[32,32],iconAnchor:[16,16],className:''});
+      const mk=L.marker([p.lat,p.lng],{icon}).addTo(m);
+      mk.bindPopup(`<div style="font-family:Syne,sans-serif;min-width:180px"><b style="color:#f0f6ff;font-size:13px">${p.name}</b><br><span style="color:#8fadc8;font-size:11px">📍 ${p.addr}</span><br><span style="color:#60a5fa;font-size:11px">⏱ ${p.eta} away</span><br><a href="tel:${p.phone}" style="display:block;margin-top:8px;padding:6px;background:#0a1a3d;border-radius:6px;color:#60a5fa;text-align:center;font-size:12px;text-decoration:none;font-weight:700">📞 ${p.phone}</a></div>`);
+      polMarkers.current.push(mk);
+    });
+    // Hazard circles
+    HAZARDS.filter(h=>h.type==='accident').forEach((_,i)=>{
+      L.circleMarker([32.3829+Math.random()*.02-86.2389*.000001,32.3792+Math.random()*.03],{
+        radius:8,color:'#e84040',fillColor:'#e84040',fillOpacity:.85,weight:2,lat:32.3750+i*.01,lng:-86.24+i*.01
+      }).addTo(m);
+    });
+  }
+
+  function toggleLayer(type){
+    const markers=type==='hospitals'?hosMarkers.current:polMarkers.current;
+    const newLayers={...layers,[type]:!layers[type]};
+    setLayers(newLayers);
+    markers.forEach(mk=>{newLayers[type]?mk.addTo(inst.current):inst.current.removeLayer(mk)});
+  }
+
+  return(<div style={{height:'100%',position:'relative'}}>
+    <div id="the-map" style={{height:'100%',width:'100%'}}/>
+    <SOSBtn onTrigger={()=>setPage('sos')}/>
+    {/* Header */}
+    <div className="glass fade-up" style={{position:'absolute',top:14,left:14,right:82,zIndex:500,padding:'10px 14px',marginBottom:8}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div><div style={{fontSize:14,fontWeight:900,color:'var(--tx0)'}}>🛡️ SafeStreet AI</div>
+        <div style={{fontSize:10,color:'var(--tx2)'}}>Montgomery, AL · Live</div></div>
+        <div style={{display:'flex',gap:5}}>
+          <span className="badge b-red">⚠️ 2 Alerts</span>
+          <span className="badge b-amb">🌧️ Rain</span>
+        </div>
+      </div>
+    </div>
+    {/* Hazard strip */}
+    <div style={{position:'absolute',top:70,left:14,right:82,zIndex:500,display:'flex',flexDirection:'column',gap:6}}>
+      {HAZARDS.slice(0,2).map(h=>(
+        <div key={h.id} className="glass" style={{padding:'8px 12px',borderLeft:`3px solid ${h.sev==='critical'?'var(--red)':h.sev==='high'?'var(--amb)':'var(--blu)'}`,cursor:'pointer'}} onClick={()=>setActiveAlert(activeAlert===h.id?null:h.id)}>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <span style={{fontSize:14}}>{h.icon}</span>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:11,color:'var(--tx1)',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{h.desc}</div>
+              <div style={{fontSize:9,color:'var(--tx2)'}}>{h.time} · {h.src}</div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+    {/* Layer toggle */}
+    <div style={{position:'absolute',bottom:60,right:14,zIndex:500,display:'flex',flexDirection:'column',gap:6}}>
+      <button onClick={()=>setShowLayers(x=>!x)} style={{width:38,height:38,borderRadius:10,background:'var(--bg2)',border:'1px solid var(--bd1)',fontSize:17,cursor:'pointer'}}>🗂️</button>
+      <button onClick={()=>setPage('nearby')} style={{width:38,height:38,borderRadius:10,background:'var(--bg2)',border:'1px solid var(--bd1)',fontSize:17,cursor:'pointer'}}>📍</button>
+      <button onClick={()=>inst.current?.setView(CENTER,12)} style={{width:38,height:38,borderRadius:10,background:'var(--bg2)',border:'1px solid var(--bd1)',fontSize:17,cursor:'pointer'}}>⊙</button>
+    </div>
+    {showLayers&&<div className="glass" style={{position:'absolute',bottom:170,right:14,zIndex:500,padding:'10px 14px',minWidth:150}}>
+      <div style={{fontSize:10,fontWeight:800,color:'var(--tx2)',marginBottom:8}}>MAP LAYERS</div>
+      {[['hospitals','🏥','Hospitals'],['police','👮','Police Stations']].map(([k,icon,lbl])=>(
+        <div key={k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid var(--bd0)',cursor:'pointer'}} onClick={()=>toggleLayer(k)}>
+          <span style={{fontSize:12,color:'var(--tx1)'}}>{icon} {lbl}</span>
+          <div style={{width:28,height:16,borderRadius:8,background:layers[k]?'var(--grn2)':'var(--bd1)',position:'relative',transition:'background .2s'}}>
+            <div style={{position:'absolute',top:2,width:12,height:12,borderRadius:'50%',background:'#fff',transition:'left .2s',left:layers[k]?14:2}}/>
+          </div>
+        </div>
+      ))}
+    </div>}
+    {/* Legend */}
+    <div className="glass" style={{position:'absolute',bottom:60,left:14,zIndex:500,padding:'8px 12px'}}>
+      <div style={{fontSize:9,fontWeight:800,color:'var(--tx2)',marginBottom:5}}>CRASH DENSITY</div>
+      {[['#22d47a','Low'],['#f5a623','Medium'],['#f97316','High'],['#e84040','Critical']].map(([c,l])=>(
+        <div key={l} style={{display:'flex',alignItems:'center',gap:7,marginBottom:3}}>
+          <div style={{width:9,height:9,borderRadius:'50%',background:c,flexShrink:0}}/>
+          <span style={{fontSize:10,color:'var(--tx1)'}}>{l}</span>
+        </div>
+      ))}
+      <div style={{borderTop:'1px solid var(--bd0)',marginTop:6,paddingTop:5}}>
+        <div style={{fontSize:9,color:'var(--tx2)'}}>🏥 Hospitals 👮 Police</div>
+      </div>
+    </div>
+  </div>);
+}
+
+/* ═══════════════════ SCREEN: NEARBY SERVICES ═══════════════════ */
+function NearbyScreen({setPage}){
+  const[tab,setTab]=useState('hospitals');
+  const items=tab==='hospitals'?HOSPITALS:POLICE;
+  const accentColor=tab==='hospitals'?'var(--red)':'var(--blu)';
+
+  return(<div className="page fade-up" style={{padding:16}}>
+    <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:16}}>
+      <button onClick={()=>setPage('map')} style={{width:34,height:34,borderRadius:8,background:'var(--bg2)',border:'1px solid var(--bd0)',color:'var(--tx1)',fontSize:16,cursor:'pointer'}}>←</button>
+      <div><h1 style={{fontSize:20,fontWeight:900}}>📍 Nearby Services</h1>
+      <p style={{fontSize:11,color:'var(--tx2)'}}>Montgomery, AL · Updated live</p></div>
+    </div>
+    <div className="tabs">
+      {[['hospitals','🏥 Hospitals'],['police','👮 Police Stations']].map(([k,l])=>(
+        <button key={k} className={`tab${tab===k?' on':''}`} onClick={()=>setTab(k)}>{l}</button>
+      ))}
+    </div>
+    {/* Emergency call strip */}
+    <div style={{display:'flex',gap:8,marginBottom:16}}>
+      <a href="tel:911" style={{flex:1,padding:'10px',background:'var(--red)',borderRadius:10,color:'#fff',textDecoration:'none',textAlign:'center',fontWeight:800,fontSize:13,fontFamily:'var(--font)'}}>📞 Call 911</a>
+      <a href="tel:3342412651" style={{flex:1,padding:'10px',background:'var(--bg2)',border:'1px solid var(--bd1)',borderRadius:10,color:'var(--blu2)',textDecoration:'none',textAlign:'center',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}}>MPD Non-Emergency</a>
+    </div>
+    {/* Quick stats */}
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:16}}>
+      {[[tab==='hospitals'?HOSPITALS.length:POLICE.length,'Total','var(--tx0)'],[tab==='hospitals'?'2':'1','Nearest','var(--grn)'],['24/7','Available','var(--amb)']].map(([v,l,c],i)=>(
+        <div key={i} className="card-sm" style={{textAlign:'center'}}>
+          <div style={{fontSize:22,fontWeight:900,color:c,fontFamily:'var(--mono)'}}>{v}</div>
+          <div style={{fontSize:10,color:'var(--tx2)'}}>{l}</div>
+        </div>
+      ))}
+    </div>
+    <div style={{display:'flex',flexDirection:'column',gap:10}}>
+      {items.map(item=>(
+        <div key={item.id} className="nearby-item" style={{flexDirection:'column',gap:0}}>
+          <div style={{display:'flex',gap:12,alignItems:'center',width:'100%'}}>
+            <div className="nearby-icon" style={{background:tab==='hospitals'?'rgba(232,64,64,.15)':'rgba(59,139,255,.15)',border:`1px solid ${tab==='hospitals'?'rgba(232,64,64,.3)':'rgba(59,139,255,.3)'}`}}>
+              {tab==='hospitals'?'🏥':'👮'}
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:14,fontWeight:800,color:'var(--tx0)',marginBottom:2}}>{item.name}</div>
+              <div style={{fontSize:11,color:'var(--tx2)',marginBottom:4}}>📍 {item.addr}</div>
+              <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                <span className="badge b-grn">✅ Open 24/7</span>
+                <span style={{fontSize:11,color:'var(--tx1)'}}>{item.dist} · ~{item.eta}</span>
+                {item.trauma&&<span className="badge b-red">🚑 Trauma</span>}
+              </div>
+            </div>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:10,width:'100%'}}>
+            <a href={navUrl(item.lat,item.lng)} target="_blank"
+              style={{padding:'9px',background:'var(--bludark)',border:'1px solid var(--bd2)',borderRadius:8,color:'var(--blu2)',textAlign:'center',fontSize:12,fontWeight:700,textDecoration:'none',fontFamily:'var(--font)'}}>
+              📍 Navigate
+            </a>
+            <a href={`tel:${item.phone}`}
+              style={{padding:'9px',background:'var(--bg1)',border:'1px solid var(--bd0)',borderRadius:8,color:'var(--tx1)',textAlign:'center',fontSize:12,fontWeight:700,textDecoration:'none',fontFamily:'var(--font)'}}>
+              📞 Call
+            </a>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>);
+}
+
+/* ═══════════════════ SCREEN 2: ROUTE CHECK ═══════════════════ */
+function RouteCheck(){
+  const[org,setOrg]=useState('');
+  const[dst,setDst]=useState('');
+  const[loading,setLoading]=useState(false);
+  const[result,setResult]=useState(null);
+
+  const SUGG=['Downtown Montgomery','Atlanta Hwy & Eastern Blvd','Baptist Health Montgomery','Bell Rd & Atlanta Hwy','Montgomery Airport','Jackson Hospital'];
+
+  function check(){
+    if(!org||!dst)return;
+    setLoading(true);setResult(null);
+    setTimeout(()=>{setResult(GEMINI_MOCK[Math.floor(Math.random()*GEMINI_MOCK.length)]);setLoading(false)},2800);
+  }
+
+  const C=2*Math.PI*54;
+  const dashOff=result?C-(result.score/100)*C:C;
+
+  return(<div className="page fade-up" style={{padding:16}}>
+    <div style={{marginBottom:16}}>
+      <h1 style={{fontSize:22,fontWeight:900,marginBottom:3}}>🛡️ Route Safety Check</h1>
+      <p style={{fontSize:12,color:'var(--tx2)'}}>Montgomery Open Data · Bright Data · Gemini AI</p>
+    </div>
+    <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>
+      {['🏛️ City Data','🌐 Bright Data','🧠 Gemini AI','🌧️ NWS Live'].map(b=>(
+        <span key={b} className="badge b-blu">{b}</span>
+      ))}
+    </div>
+    <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:16}}>
+      <div style={{position:'relative'}}>
+        <span style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',fontSize:15}}>📍</span>
+        <input className="inp" value={org} onChange={e=>setOrg(e.target.value)} placeholder="Starting from..." style={{paddingLeft:38}}/>
+      </div>
+      <div style={{position:'relative'}}>
+        <span style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',fontSize:15}}>🎯</span>
+        <input className="inp" value={dst} onChange={e=>setDst(e.target.value)} placeholder="Going to..." style={{paddingLeft:38}}/>
+      </div>
+      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+        {SUGG.slice(0,4).map(s=>(
+          <button key={s} className="chip" onClick={()=>!org?setOrg(s):setDst(s)}>{s}</button>
+        ))}
+      </div>
+      <button className="btn btn-blue" onClick={check} disabled={!org||!dst||loading}>
+        {loading?<><div className="spin"/>&nbsp;Analyzing...</>:'🔍 Check Route Safety'}
+      </button>
+    </div>
+    {loading&&<div className="card fade-up" style={{textAlign:'center',padding:24}}>
+      <div style={{display:'flex',justifyContent:'center',gap:5,marginBottom:12}}>
+        {[0,1,2].map(i=><div key={i} style={{width:7,height:7,borderRadius:'50%',background:'var(--blu2)',animation:`wave 1.2s ease-in-out ${i*.2}s infinite`}}/>)}
+      </div>
+      <div style={{fontSize:13,color:'var(--tx2)'}}>Analyzing {HEAT_PTS.length} historical crashes,<br/>live weather & active hazards...</div>
+    </div>}
+    {result&&<div className="fade-up">
+      <div className="card" style={{textAlign:'center',marginBottom:12,borderTop:`3px solid ${result.color}`}}>
+        <svg width="140" height="140" viewBox="0 0 140 140" style={{overflow:'visible'}}>
+          <circle cx="70" cy="70" r="54" fill="none" stroke="var(--bg1)" strokeWidth="12" strokeLinecap="round"/>
+          <circle cx="70" cy="70" r="54" fill="none" stroke={result.color} strokeWidth="12" strokeLinecap="round"
+            strokeDasharray={C} strokeDashoffset={dashOff} transform="rotate(-90 70 70)"
+            style={{transition:'stroke-dashoffset 1.5s ease, stroke 1s ease'}}/>
+          {result.score>60&&<circle cx="70" cy="70" r="22" fill={result.color} fillOpacity=".1">
+            <animate attributeName="r" values="22;38;22" dur="2s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values=".5;0;.5" dur="2s" repeatCount="indefinite"/>
+          </circle>}
+          <text x="70" y="63" textAnchor="middle" fill="var(--tx0)" fontSize="32" fontWeight="900" fontFamily="DM Mono">{result.score}</text>
+          <text x="70" y="82" textAnchor="middle" fill={result.color} fontSize="11" fontWeight="800" fontFamily="Syne">{result.level} RISK</text>
+        </svg>
+        <p style={{fontSize:13,color:'var(--tx1)',marginTop:4,lineHeight:1.6}}>{result.exp}</p>
+      </div>
+      <div className="card" style={{marginBottom:12}}>
+        <div className="sec-hdr">TOP RISK FACTORS</div>
+        {result.risks.map((r,i)=><div key={i} style={{padding:'8px 0',borderBottom:i<2?'1px solid var(--bd0)':'none',fontSize:13,color:'var(--tx1)'}}>{r}</div>)}
+      </div>
+      <div className="card" style={{marginBottom:12,background:'var(--bludark)',borderColor:'var(--bd2)'}}>
+        <div style={{fontSize:10,fontWeight:800,color:'var(--blu2)',marginBottom:5}}>AI RECOMMENDATION</div>
+        <p style={{fontSize:13,color:'#93c5fd',lineHeight:1.5}}>💡 {result.rec}</p>
+      </div>
+      {result.alt&&<button className="btn btn-green">🗺️ View Safer Alternate Route</button>}
+    </div>}
+  </div>);
+}
+
+/* ═══════════════════ SCREEN 3: SOS ═══════════════════ */
+function SOSScreen(){
+  const[rows,setRows]=useState([
+    {id:'loc',icon:'📍',msg:'Getting your GPS location...',state:'active'},
+    {id:'911',icon:'🚨',msg:'Connecting to 911...',state:'idle'},
+    {id:'fam',icon:'👨‍👩‍👧',msg:'Notifying family contacts...',state:'idle'},
+    {id:'resp',icon:'🦺',msg:'Finding nearby responders...',state:'idle'},
+    {id:'hosp',icon:'🏥',msg:'Locating nearest emergency room...',state:'idle'},
+    {id:'pol',icon:'👮',msg:'Alerting nearest police station...',state:'idle'},
+  ]);
+  const[phase,setPhase]=useState(0);
+  const[cancelled,setCancelled]=useState(false);
+  const[respFound,setRespFound]=useState(false);
+
+  const UPDATES=[
+    s=>s.map((r,i)=>i===0?{...r,state:'done',msg:'✅ Location: Atlanta Hwy, Montgomery AL'}:i===1?{...r,state:'active'}:r),
+    s=>s.map((r,i)=>i===1?{...r,state:'done',msg:'✅ 911 connected — dispatcher notified'}:i===2?{...r,state:'active'}:r),
+    s=>s.map((r,i)=>i===2?{...r,state:'done',msg:'✅ 3 family contacts notified via SMS'}:i===3?{...r,state:'active'}:r),
+    s=>{setRespFound(true);return s.map((r,i)=>i===3?{...r,state:'done',msg:'✅ 2 responders dispatched (0.3 mi, 0.5 mi)'}:i===4?{...r,state:'active'}:r)},
+    s=>s.map((r,i)=>i===4?{...r,state:'done',msg:'✅ Baptist Health Montgomery — 4 min away'}:i===5?{...r,state:'active'}:r),
+    s=>s.map((r,i)=>i===5?{...r,state:'done',msg:'✅ MPD East Precinct alerted — 3 min away'}:r),
+  ];
+
+  useEffect(()=>{
+    if(cancelled)return;
+    const timers=UPDATES.map((fn,i)=>setTimeout(()=>setRows(fn),1300*(i+1)));
+    return()=>timers.forEach(clearTimeout);
+  },[]);
+
+  if(cancelled)return(
+    <div className="page fade-up em-bg" style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24}}>
+      <div style={{fontSize:64,marginBottom:16}}>✅</div>
+      <h2 style={{fontSize:22,fontWeight:900,color:'var(--grn)',marginBottom:8}}>SOS Cancelled</h2>
+      <p style={{color:'var(--tx2)',textAlign:'center'}}>All emergency alerts have been stopped.</p>
+    </div>
+  );
+
+  return(<div className="page fade-up em-bg" style={{padding:16}}>
+    <div style={{textAlign:'center',marginBottom:20}}>
+      <div style={{fontSize:52,marginBottom:6,animation:'sosPulse 1s infinite alternate',display:'inline-block'}}>🆘</div>
+      <h1 style={{fontSize:26,fontWeight:900,color:'var(--red)',marginBottom:3}}>EMERGENCY ACTIVE</h1>
+      <p style={{fontSize:13,color:'var(--tx2)'}}>Help is being coordinated. Stay calm.</p>
+    </div>
+    <div style={{display:'flex',flexDirection:'column',gap:7,marginBottom:16}}>
+      {rows.map((r,i)=>(
+        <div key={r.id} className={`st-row${r.state==='done'?' done':r.state==='active'?' active':''}`}
+          style={{animationDelay:`${i*.05}s`}}>
+          <span style={{fontSize:20}}>{r.icon}</span>
+          <span style={{fontSize:13,flex:1,color:r.state==='done'?'var(--grn)':r.state==='active'?'var(--amb)':'var(--tx2)'}}>{r.msg}</span>
+          {r.state==='active'&&<div className="spin"/>}
+        </div>
+      ))}
+    </div>
+    {respFound&&<div className="card fade-up" style={{marginBottom:12,borderColor:'rgba(34,212,122,.2)',background:'var(--grndark)'}}>
+      <div className="sec-hdr" style={{color:'var(--grn)'}}>🦺 RESPONDERS EN ROUTE</div>
+      {RESPONDERS.map((r,i)=>(
+        <div key={i} style={{display:'flex',gap:10,alignItems:'center',padding:'8px 0',borderBottom:i===0?'1px solid var(--bd0)':'none'}}>
+          <div style={{width:34,height:34,borderRadius:'50%',background:'var(--bg3)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}}>🦺</div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:13,fontWeight:700}}>{r.name}</div>
+            <div style={{fontSize:11,color:'var(--tx2)'}}>{r.training} · {r.dist} · ETA {r.eta}</div>
+          </div>
+          <span className="badge b-grn">COMING</span>
+        </div>
+      ))}
+    </div>}
+    {/* Hospitals */}
+    <div className="card" style={{marginBottom:8}}>
+      <div className="sec-hdr">🏥 NEAREST ER · 👮 NEAREST POLICE</div>
+      {[HOSPITALS[0],POLICE[0]].map((s,i)=>(
+        <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:i===0?'1px solid var(--bd0)':'none'}}>
+          <span style={{fontSize:20}}>{i===0?'🏥':'👮'}</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:13,fontWeight:700}}>{s.name}</div>
+            <div style={{fontSize:11,color:'var(--tx2)'}}>{s.dist} · ~{s.eta}</div>
+          </div>
+          <a href={navUrl(s.lat,s.lng)} target="_blank" style={{padding:'5px 10px',background:'var(--bludark)',border:'1px solid var(--bd2)',borderRadius:7,color:'var(--blu2)',fontSize:11,fontWeight:700,textDecoration:'none',fontFamily:'var(--font)'}}>📍 Go</a>
+        </div>
+      ))}
+    </div>
+    <button onClick={()=>setCancelled(true)} className="btn btn-ghost" style={{marginTop:8,fontSize:13}}>Cancel SOS</button>
+  </div>);
+}
+
+/* ═══════════════════ SCREEN 4: RESPONDER ═══════════════════ */
+function ResponderScreen(){
+  const[mode,setMode]=useState('reg');
+  const[training,setTraining]=useState(null);
+
+  if(mode==='reg')return(<div className="page fade-up" style={{padding:16}}>
+    <h1 style={{fontSize:22,fontWeight:900,marginBottom:4}}>🦺 Responder Network</h1>
+    <p style={{fontSize:13,color:'var(--tx2)',marginBottom:16}}>Register to receive SOS alerts when emergencies occur near you.</p>
+    <div className="card" style={{marginBottom:14}}>
+      <div className="sec-hdr">SELECT YOUR TRAINING LEVEL</div>
+      {[['👨‍⚕️','Medical Professional','Doctor, Nurse, Paramedic','med'],['🏥','CPR / First Aid Certified','Red Cross, AHA certified','cpr'],['🤝','General Helper','Willing to assist','gen']].map(([icon,ttl,sub,key])=>(
+        <div key={key} onClick={()=>setTraining(key)} style={{display:'flex',gap:12,alignItems:'center',padding:'12px 0',borderBottom:'1px solid var(--bd0)',cursor:'pointer',background:training===key?'rgba(59,139,255,.05)':'transparent',marginLeft:-4,paddingLeft:4,borderRadius:training===key?8:0,transition:'all .2s'}}>
+          <span style={{fontSize:26}}>{icon}</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:14,fontWeight:700,color:training===key?'var(--blu2)':'var(--tx0)'}}>{ttl}</div>
+            <div style={{fontSize:11,color:'var(--tx2)'}}>{sub}</div>
+          </div>
+          <div style={{width:18,height:18,borderRadius:'50%',border:`2px solid ${training===key?'var(--blu)':'var(--bd2)'}`,background:training===key?'var(--blu)':'transparent',transition:'all .2s'}}/>
+        </div>
+      ))}
+    </div>
+    <div className="card-sm" style={{background:'var(--bludark)',borderColor:'var(--bd2)',marginBottom:14}}>
+      <p style={{fontSize:12,color:'#93c5fd',lineHeight:1.6}}>ℹ️ Registering means you'll receive alerts when accidents occur within 1 mile. You always choose whether to respond. Your safety comes first.</p>
+    </div>
+    <button className="btn btn-green" disabled={!training} onClick={()=>setMode('standby')}>✅ Register as Responder</button>
+  </div>);
+
+  if(mode==='standby'){
+    setTimeout(()=>setMode('alert'),3000);
+    return(<div className="page fade-up" style={{padding:16}}>
+      <h1 style={{fontSize:20,fontWeight:900,marginBottom:4}}>🦺 Responder Active</h1>
+      <p style={{fontSize:13,color:'var(--tx2)',marginBottom:16}}>Monitoring for nearby emergencies...</p>
+      <div className="card" style={{textAlign:'center',padding:28,marginBottom:14,borderColor:'rgba(34,212,122,.2)',background:'var(--grndark)'}}>
+        <div style={{position:'relative',width:60,height:60,margin:'0 auto 12px'}}>
+          <div style={{position:'absolute',inset:0,borderRadius:'50%',border:'2px solid var(--grn)',animation:'ripple 2s ease-out infinite'}}/>
+          <div style={{width:60,height:60,borderRadius:'50%',background:'rgba(34,212,122,.15)',border:'2px solid var(--grn)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:28}}>🟢</div>
+        </div>
+        <div style={{fontSize:15,fontWeight:800,color:'var(--grn)'}}>MONITORING ACTIVE</div>
+        <div style={{fontSize:12,color:'var(--tx2)',marginTop:4}}>1 mile radius · Montgomery, AL</div>
+        <div style={{fontSize:10,color:'var(--tx3)',marginTop:8}}>⚡ Demo SOS incoming in ~3s</div>
+      </div>
+      <div className="card"><div className="sec-hdr">YOUR STATS</div>
+        {[['Responses This Month','3'],['Lives Touched','5'],['Avg Response Time','2.8 min']].map(([l,v])=>(
+          <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--bd0)',fontSize:13}}>
+            <span style={{color:'var(--tx2)'}}>{l}</span><span style={{fontWeight:700}}>{v}</span>
+          </div>
+        ))}
+      </div>
+    </div>);
+  }
+
+  if(mode==='alert')return(<div className="page em-bg fade-up" style={{padding:16}}>
+    <div className="card fade-up" style={{border:'2px solid var(--red)',animation:'alertGlow 1s ease infinite alternate',background:'rgba(30,4,4,.9)',marginBottom:14}}>
+      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+        <span style={{fontSize:38}}>🚨</span>
+        <div><div style={{fontSize:20,fontWeight:900,color:'var(--red)'}}>SOS NEARBY</div>
+        <div style={{fontSize:12,color:'var(--tx2)'}}>0.3 miles · Just now</div></div>
+      </div>
+      <div style={{background:'var(--bg0)',borderRadius:8,padding:10,marginBottom:12}}>
+        <div style={{fontSize:11,color:'var(--tx2)',marginBottom:3}}>INCIDENT TYPE</div>
+        <div style={{fontSize:14,fontWeight:700}}>🚗 Traffic Accident — Possible Injuries</div>
+        <div style={{fontSize:12,color:'var(--tx2)',marginTop:2}}>Atlanta Hwy near Eastern Blvd</div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+        <button onClick={()=>setMode('responding')} style={{padding:14,background:'var(--grn2)',border:'none',borderRadius:10,color:'#fff',fontWeight:800,fontSize:14,cursor:'pointer',fontFamily:'var(--font)'}}>✅ I'm Responding</button>
+        <button onClick={()=>setMode('standby')} style={{padding:14,background:'var(--bg2)',border:'1px solid var(--bd1)',borderRadius:10,color:'var(--tx2)',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'var(--font)'}}>❌ Can't Go</button>
+      </div>
+    </div>
+  </div>);
+
+  if(mode==='responding')return(<div className="page fade-up" style={{padding:16}}>
+    <div style={{textAlign:'center',marginBottom:16}}>
+      <div style={{fontSize:46,marginBottom:8}}>💪</div>
+      <h1 style={{fontSize:20,fontWeight:900,color:'var(--grn)'}}>You're Helping!</h1>
+      <p style={{fontSize:13,color:'var(--tx2)'}}>Victim's family notified · ETA 2 min</p>
+    </div>
+    <a href={navUrl(32.3829,-86.2389)} target="_blank" className="btn" style={{background:'var(--bludark)',border:'1px solid var(--bd2)',color:'var(--blu2)',marginBottom:12,textDecoration:'none'}}>📍 Navigate: 0.3 mi (Atlanta Hwy)</a>
+    <div className="card" style={{marginBottom:12}}>
+      <div className="sec-hdr">FIRST RESPONSE GUIDE</div>
+      {['🚗 Drive carefully — activate hazard lights','🧘 Stay calm, assess scene on arrival','📢 Call out — is anyone conscious?','🩺 If unresponsive: check breathing, start CPR if trained','⚕️ Control bleeding with firm direct pressure','🚫 Don\'t move victim if spinal injury possible','📱 Keep 911 on line, update condition'].map((s,i)=>(
+        <div key={i} style={{display:'flex',gap:10,padding:'7px 0',borderBottom:i<6?'1px solid var(--bd0)':'none'}}>
+          <span style={{fontSize:12,fontWeight:900,color:'var(--blu)',minWidth:18,fontFamily:'var(--mono)'}}>{i+1}</span>
+          <span style={{fontSize:12,color:'var(--tx1)',lineHeight:1.5}}>{s}</span>
+        </div>
+      ))}
+    </div>
+    <button onClick={()=>setMode('complete')} className="btn btn-ghost" style={{fontSize:13}}>✅ I've Arrived — Check In</button>
+  </div>);
+
+  return(<div className="page fade-up" style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24}}>
+    <div style={{fontSize:60,marginBottom:16}}>🌟</div>
+    <h2 style={{fontSize:22,fontWeight:900,color:'var(--tx0)',marginBottom:8}}>Thank You!</h2>
+    <p style={{color:'var(--tx2)',textAlign:'center',lineHeight:1.6,marginBottom:20}}>You made a difference today. The victim's family knows help arrived.</p>
+    <button className="btn btn-green" onClick={()=>setMode('standby')}>Return to Monitoring</button>
+  </div>);
+}
+
+/* ═══════════════════ SCREEN 5: HEALTH MONITOR ═══════════════════ */
+function HealthMonitor({setPage}){
+  const[bpm,setBpm]=useState(72);
+  const[monitoring,setMonitoring]=useState(false);
+  const[cameraOn,setCameraOn]=useState(false);
+  const[status,setStatus]=useState('idle'); // idle | normal | warning | critical | alert
+  const[alertTriggered,setAlertTriggered]=useState(false);
+  const[timeOn,setTimeOn]=useState(0);
+  const[history,setHistory]=useState([]);
+  const videoRef=useRef(null);
+  const canvasRef=useRef(null);
+  const streamRef=useRef(null);
+  const bpmInterval=useRef(null);
+  const timerRef=useRef(null);
+
+  // rPPG simulation: analyze face color changes to estimate BPM
+  function startCamera(){
+    if(navigator.mediaDevices?.getUserMedia){
+      navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:320,height:240}})
+        .then(stream=>{
+          streamRef.current=stream;
+          if(videoRef.current){videoRef.current.srcObject=stream;videoRef.current.play();}
+          setCameraOn(true);
+          startMonitoring();
+        })
+        .catch(()=>{
+          // Camera denied - use simulation mode
+          setCameraOn('simulated');
+          startMonitoring();
+        });
+    } else {
+      setCameraOn('simulated');
+      startMonitoring();
+    }
+  }
+
+  function startMonitoring(){
+    setMonitoring(true);
+    setStatus('normal');
+    setTimeOn(0);
+    setHistory([]);
+    let t=0;
+    let bpmVal=72;
+    let scenario=0; // 0=normal, will escalate for demo
+
+    timerRef.current=setInterval(()=>{setTimeOn(x=>x+1)},1000);
+
+    bpmInterval.current=setInterval(()=>{
+      t+=1;
+      // Demo scenario: normal → elevated → critical at t=15 for demo
+      if(t<8){
+        bpmVal=70+Math.floor(Math.random()*10-5); // 65-80 normal
+        setStatus('normal');
+      } else if(t<14){
+        bpmVal=95+Math.floor(Math.random()*15); // elevated
+        setStatus('warning');
+      } else if(t<20){
+        bpmVal=145+Math.floor(Math.random()*20); // critical high
+        setStatus('critical');
+      } else {
+        bpmVal=30+Math.floor(Math.random()*8); // very low - heart attack
+        setStatus('critical');
+        if(!alertTriggered&&t===20){
+          setAlertTriggered(true);
+          setStatus('alert');
+        }
+      }
+      setBpm(bpmVal);
+      setHistory(h=>[...h.slice(-29),bpmVal]);
+    },1000);
+  }
+
+  function stopMonitoring(){
+    setMonitoring(false);
+    setStatus('idle');
+    clearInterval(bpmInterval.current);
+    clearInterval(timerRef.current);
+    if(streamRef.current)streamRef.current.getTracks().forEach(t=>t.stop());
+    setCameraOn(false);
+  }
+
+  useEffect(()=>()=>{
+    clearInterval(bpmInterval.current);
+    clearInterval(timerRef.current);
+    if(streamRef.current)streamRef.current.getTracks().forEach(t=>t.stop());
+  },[]);
+
+  const bpmColor=bpm<50||bpm>140?'var(--red)':bpm<60||bpm>100?'var(--amb)':'var(--grn)';
+  const maxH=Math.max(...history,1);
+  const formatTime=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+
+  if(status==='alert'||alertTriggered){
+    return(<div className="page em-bg fade-up" style={{padding:16}}>
+      <div style={{textAlign:'center',marginBottom:20}}>
+        <div style={{fontSize:52,animation:'sosPulse .6s infinite alternate',display:'inline-block',marginBottom:8}}>💔</div>
+        <h1 style={{fontSize:24,fontWeight:900,color:'var(--red)',marginBottom:4}}>CARDIAC ALERT</h1>
+        <p style={{fontSize:13,color:'var(--tx2)'}}>Abnormal heart rate detected. Emergency contacts being notified.</p>
+      </div>
+      {/* BPM display */}
+      <div className="card fade-up" style={{textAlign:'center',marginBottom:12,borderColor:'rgba(232,64,64,.4)',background:'rgba(30,4,4,.8)'}}>
+        <div style={{fontSize:12,fontWeight:800,color:'var(--red)',letterSpacing:1,marginBottom:6}}>DETECTED BPM</div>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
+          <div className="bpm-num" style={{color:'var(--red)',fontSize:64}}>{bpm}</div>
+          <div>
+            <div style={{fontSize:11,color:'var(--red)',fontWeight:700}}>CRITICAL</div>
+            <div style={{fontSize:11,color:'var(--tx2)'}}>{bpm<50?'TOO LOW':'TOO HIGH'}</div>
+          </div>
+        </div>
+        <div style={{fontSize:11,color:'var(--tx2)',marginTop:6}}>Normal range: 60–100 BPM</div>
+      </div>
+      {/* Actions auto-taken */}
+      <div className="card" style={{marginBottom:12,background:'rgba(30,4,4,.8)',borderColor:'rgba(232,64,64,.3)'}}>
+        <div className="sec-hdr" style={{color:'var(--red)'}}>EMERGENCY ACTIONS TAKEN</div>
+        {['✅ 911 emergency call initiated','✅ Family contacts notified via SMS with live location','✅ MPD nearest patrol alerted','✅ Baptist Health Montgomery ER notified (1.2 mi)'].map((a,i)=>(
+          <div key={i} style={{fontSize:13,color:'var(--grn)',padding:'6px 0',borderBottom:i<3?'1px solid var(--bd0)':'none'}}>{a}</div>
+        ))}
+      </div>
+      {/* Hospitals */}
+      <div className="card" style={{marginBottom:12}}>
+        <div className="sec-hdr">🏥 NEAREST CARDIAC CARE</div>
+        {HOSPITALS.slice(0,2).map((h,i)=>(
+          <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:i===0?'1px solid var(--bd0)':'none'}}>
+            <span style={{fontSize:18}}>🏥</span>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,fontWeight:700}}>{h.name}</div>
+              <div style={{fontSize:11,color:'var(--tx2)'}}>{h.dist} · ~{h.eta}</div>
+            </div>
+            <a href={navUrl(h.lat,h.lng)} target="_blank" style={{padding:'5px 10px',background:'var(--red)',borderRadius:7,color:'#fff',fontSize:11,fontWeight:700,textDecoration:'none',fontFamily:'var(--font)'}}>Go</a>
+          </div>
+        ))}
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+        <a href="tel:911" style={{padding:12,background:'var(--red)',borderRadius:10,color:'#fff',textAlign:'center',fontSize:13,fontWeight:800,textDecoration:'none',fontFamily:'var(--font)'}}>📞 Call 911</a>
+        <button onClick={()=>setAlertTriggered(false)} className="btn btn-ghost" style={{fontSize:13}}>Cancel Alert</button>
+      </div>
+    </div>);
+  }
+
+  return(<div className="page hm-bg fade-up" style={{padding:16}}>
+    <div style={{marginBottom:16}}>
+      <h1 style={{fontSize:22,fontWeight:900,marginBottom:3}}>❤️ Driver Health Monitor</h1>
+      <p style={{fontSize:12,color:'var(--tx2)'}}>AI-powered cardiac monitoring via front camera</p>
+    </div>
+    {/* How it works */}
+    {!monitoring&&<div className="card" style={{marginBottom:14,background:'var(--bludark)',borderColor:'var(--bd2)'}}>
+      <div style={{fontSize:11,fontWeight:800,color:'var(--blu2)',marginBottom:8}}>HOW IT WORKS</div>
+      <div style={{display:'flex',flexDirection:'column',gap:6}}>
+        {['📷 Front camera analyzes subtle facial color changes (rPPG)',
+          '💓 AI detects blood flow patterns to calculate real-time BPM',
+          '🚨 If BPM < 50 or > 140: automatic emergency alert to 911 + family',
+          '👮 Nearest police station and hospital notified immediately'].map((t,i)=>(
+          <div key={i} style={{fontSize:12,color:'#93c5fd',lineHeight:1.5}}>{t}</div>
+        ))}
+      </div>
+    </div>}
+    {/* Camera + BPM */}
+    {monitoring&&<>
+      <div className={`cam-overlay${status==='critical'||status==='warning'?' warning':''}`} style={{marginBottom:12,position:'relative'}}>
+        {cameraOn===true?
+          <video ref={videoRef} id="health-video" autoPlay muted playsInline style={{width:'100%',height:160,borderRadius:12,objectFit:'cover',transform:'scaleX(-1)',background:'#000'}}/>:
+          <div style={{width:'100%',height:160,borderRadius:12,background:'var(--bg2)',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:8,border:'2px solid var(--grn)'}}>
+            <span style={{fontSize:40}}>👤</span>
+            <span style={{fontSize:12,color:'var(--tx2)'}}>Camera Active (Simulation Mode)</span>
+            {/* Simulated scan lines */}
+            <div style={{position:'absolute',bottom:16,left:'50%',transform:'translateX(-50%)',display:'flex',gap:2}}>
+              {Array.from({length:20},(_,i)=><div key={i} style={{width:3,height:Math.random()*20+5,background:'var(--grn)',borderRadius:2,opacity:.6,animation:`wave 1s ease-in-out ${i*.05}s infinite`}}/>)}
+            </div>
+          </div>
+        }
+        {/* Face scan overlay */}
+        <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',width:80,height:100,border:`2px solid ${bpmColor}`,borderRadius:'40px/50px',boxShadow:`0 0 20px ${bpmColor}44`,pointerEvents:'none',transition:'border-color .5s'}}/>
+        {/* Scan line */}
+        <div style={{position:'absolute',left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${bpmColor},transparent)`,animation:'verticalScan 2s linear infinite',pointerEvents:'none',top:0}}/>
+      </div>
+      {/* BPM Card */}
+      <div className="card" style={{marginBottom:12,textAlign:'center',borderColor:bpmColor+'44',background:`rgba(0,0,0,.4)`}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:16,marginBottom:8}}>
+          <div style={{position:'relative',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <span style={{fontSize:42,animation:`bpmPulse ${60000/Math.max(bpm,1)/1000}s ease-in-out infinite`,display:'inline-block',filter:`drop-shadow(0 0 8px ${bpmColor})`}}>❤️</span>
+          </div>
+          <div>
+            <div className="bpm-num" style={{color:bpmColor,fontSize:56,fontFamily:'var(--mono)',fontWeight:500}}>{bpm}</div>
+            <div style={{fontSize:12,color:'var(--tx2)'}}>BPM</div>
+          </div>
+        </div>
+        <div className="badge" style={{
+          background:bpm<50||bpm>140?'rgba(232,64,64,.2)':bpm<60||bpm>100?'rgba(245,166,35,.2)':'rgba(34,212,122,.2)',
+          color:bpmColor,fontSize:12,padding:'4px 14px',margin:'0 auto'
+        }}>
+          {bpm<50?'⚠️ CRITICALLY LOW':bpm>140?'⚠️ CRITICALLY HIGH':bpm<60||bpm>100?'⚡ ELEVATED':'✅ NORMAL'}
+        </div>
+        {/* History sparkline */}
+        {history.length>3&&<div style={{marginTop:12,display:'flex',alignItems:'flex-end',gap:2,height:32,justifyContent:'center'}}>
+          {history.slice(-20).map((v,i)=>(
+            <div key={i} style={{width:6,borderRadius:2,height:`${(v/maxH)*28+2}px`,background:riskColor(v>100||v<60?80:30),opacity:.7+i/20*.3,transition:'height .3s'}}/>
+          ))}
+        </div>}
+        <div style={{fontSize:10,color:'var(--tx3)',marginTop:6}}>⏱️ {formatTime(timeOn)} monitoring · {history.length} readings</div>
+      </div>
+      {/* Vitals row */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:12}}>
+        {[['SpO₂','97%','var(--teal)'],['Stress',bpm>100?'High':'Low',bpm>100?'var(--red)':'var(--grn)'],['Alertness',bpm>50&&bpm<120?'Alert':'Low',bpm>50&&bpm<120?'var(--grn)':'var(--red)']].map(([l,v,c])=>(
+          <div key={l} className="card-sm" style={{textAlign:'center',borderColor:c+'33'}}>
+            <div style={{fontSize:16,fontWeight:900,color:c,fontFamily:'var(--mono)'}}>{v}</div>
+            <div style={{fontSize:9,color:'var(--tx2)',marginTop:2}}>{l}</div>
+          </div>
+        ))}
+      </div>
+    </>}
+    {/* BPM thresholds info */}
+    <div className="card" style={{marginBottom:14}}>
+      <div className="sec-hdr">ALERT THRESHOLDS</div>
+      {[['BPM < 50','Critically Low — Possible cardiac event','var(--red)'],
+        ['BPM 50–60','Low — Possible bradycardia','var(--amb)'],
+        ['BPM 60–100','Normal Range — No action','var(--grn)'],
+        ['BPM 100–140','Elevated — Monitor closely','var(--amb)'],
+        ['BPM > 140','Critically High — Tachycardia alert','var(--red)']].map(([r,desc,c])=>(
+        <div key={r} style={{display:'flex',gap:10,padding:'7px 0',borderBottom:'1px solid var(--bd0)',alignItems:'flex-start'}}>
+          <span style={{width:8,height:8,borderRadius:'50%',background:c,flexShrink:0,marginTop:5}}/>
+          <div>
+            <div style={{fontSize:12,fontWeight:700,color:c,fontFamily:'var(--mono)'}}>{r}</div>
+            <div style={{fontSize:11,color:'var(--tx2)'}}>{desc}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+    {!monitoring?
+      <button className="btn btn-green" onClick={startCamera}>❤️ Start Health Monitoring</button>:
+      <button className="btn btn-red" onClick={stopMonitoring}>⏹ Stop Monitoring</button>
+    }
+    {monitoring&&status==='warning'&&<div className="card fade-up" style={{marginTop:12,background:'var(--ambdark)',borderColor:'rgba(245,166,35,.4)'}}>
+      <div style={{display:'flex',gap:10,alignItems:'center'}}>
+        <span style={{fontSize:22}}>⚠️</span>
+        <div>
+          <div style={{fontSize:13,fontWeight:700,color:'var(--amb)'}}>Elevated Heart Rate</div>
+          <div style={{fontSize:11,color:'var(--tx2)'}}>BPM above normal. Monitoring closely. Will alert if it worsens.</div>
+        </div>
+      </div>
+    </div>}
+  </div>);
+}
+
+/* ═══════════════════ SCREEN 6: DASHBOARD ═══════════════════ */
+function Dashboard(){
+  const[showAI,setShowAI]=useState(false);
+  const[loadingAI,setLoadingAI]=useState(false);
+  const maxW=Math.max(...WEEKLY.map(d=>d.n));
+  const maxH2=Math.max(...HOURLY.map(d=>d.n));
+
+  function genPredictions(){setLoadingAI(true);setTimeout(()=>{setShowAI(true);setLoadingAI(false)},2000)}
+
+  return(<div className="page fade-up" style={{padding:16}}>
+    <div style={{marginBottom:14}}>
+      <h1 style={{fontSize:20,fontWeight:900,marginBottom:2}}>📊 City Safety Dashboard</h1>
+      <p style={{fontSize:11,color:'var(--tx2)'}}>Montgomery, AL · Live Data · City Officials</p>
+      <div style={{display:'flex',gap:5,flexWrap:'wrap',marginTop:8}}>
+        {['🏛️ Open Data','🌐 Bright Data','🧠 Gemini','👮 MPD Live'].map(b=><span key={b} className="badge b-blu">{b}</span>)}
+      </div>
+    </div>
+    {/* KPIs */}
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}}>
+      {[['🚗','22','Crashes This Week','+3 vs last wk','var(--red)'],
+        ['⚠️','4','Active Hazards','2 critical','var(--amb)'],
+        ['🦺','18','Responders Online','↑ vs 12 avg','var(--grn)'],
+        ['⏱️','6.4m','Avg 911 Response','↓ improving','var(--grn)'],
+        ['🏥','4','Hospitals Nearby','All open 24/7','var(--teal)'],
+        ['👮','4','Police Stations','3 active patrols','var(--blu2)'],
+      ].map(([icon,val,lbl,delta,c],i)=>(
+        <div key={i} className="card-sm">
+          <span style={{fontSize:18}}>{icon}</span>
+          <div style={{fontSize:24,fontWeight:900,color:c,lineHeight:1.1,marginTop:4,fontFamily:'var(--mono)'}}>{val}</div>
+          <div style={{fontSize:9,color:'var(--tx2)',marginBottom:2}}>{lbl}</div>
+          <div style={{fontSize:9,fontWeight:700,color:c}}>{delta}</div>
+        </div>
+      ))}
+    </div>
+    {/* Weekly bar chart */}
+    <div className="card" style={{marginBottom:12}}>
+      <div className="sec-hdr">CRASHES — PAST 7 DAYS</div>
+      <div style={{display:'flex',alignItems:'flex-end',gap:5,height:80}}>
+        {WEEKLY.map((d,i)=>(
+          <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+            <span style={{fontSize:9,color:'var(--tx2)',fontFamily:'var(--mono)'}}>{d.n}</span>
+            <div style={{width:'100%',borderRadius:'4px 4px 0 0',
+              height:`${(d.n/maxW)*60}px`,
+              background:d.n===maxW?'var(--red)':d.d==='Fri'||d.d==='Sat'?'var(--amb)':'var(--blu)',
+              transition:'height 1s ease',minHeight:3}}/>
+            <span style={{fontSize:9,color:'var(--tx2)'}}>{d.d}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+    {/* Hourly */}
+    <div className="card" style={{marginBottom:12}}>
+      <div className="sec-hdr">CRASHES BY HOUR (ALL TIME)</div>
+      <div style={{display:'flex',alignItems:'flex-end',gap:1,height:50}}>
+        {HOURLY.map((d,i)=>(
+          <div key={i} style={{flex:1,borderRadius:'2px 2px 0 0',
+            height:`${(d.n/maxH2)*45}px`,
+            background:(d.h>=7&&d.h<=9)||(d.h>=16&&d.h<=18)?'var(--red)':'var(--bd1)',
+            minHeight:2,transition:'height .8s ease'}}/>
+        ))}
+      </div>
+      <div style={{display:'flex',justifyContent:'space-between',marginTop:4}}>
+        <span style={{fontSize:9,color:'var(--tx2)'}}>12AM</span>
+        <span style={{fontSize:9,color:'var(--red)'}}>↑ Rush hours</span>
+        <span style={{fontSize:9,color:'var(--tx2)'}}>11PM</span>
+      </div>
+    </div>
+    {/* AI hotspots */}
+    <div className="card" style={{marginBottom:12}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+        <div><div className="sec-hdr" style={{marginBottom:2}}>🔮 AI PREDICTED HOTSPOTS</div>
+        <span style={{fontSize:9,color:'var(--tx2)'}}>Next 24 hours · Gemini AI</span></div>
+        <button onClick={genPredictions} disabled={loadingAI}
+          style={{fontSize:11,padding:'5px 12px',background:loadingAI?'var(--bd0)':'var(--bludark)',border:'1px solid var(--bd2)',borderRadius:20,color:'var(--blu2)',cursor:'pointer',fontFamily:'var(--font)'}}>
+          {loadingAI?'⏳':'🧠 Generate'}
+        </button>
+      </div>
+      {loadingAI&&<div style={{display:'flex',gap:5,justifyContent:'center',padding:16}}>
+        {[0,1,2].map(i=><div key={i} style={{width:7,height:7,borderRadius:'50%',background:'var(--blu2)',animation:`wave 1.2s ease-in-out ${i*.2}s infinite`}}/>)}
+      </div>}
+      {showAI?HOTSPOTS.map((h,i)=>(
+        <div key={i} className="hs-row">
+          <div className="hs-score" style={{color:riskColor(h.score)}}>{h.score}</div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:12,fontWeight:700}}>{h.loc}</div>
+            <div style={{fontSize:10,color:'var(--tx2)'}}>{h.n} historical incidents</div>
+            <div className="prog-track" style={{marginTop:5}}>
+              <div className="prog-fill" style={{width:`${h.score}%`,background:riskColor(h.score)}}/>
+            </div>
+          </div>
+        </div>
+      )):<div style={{textAlign:'center',padding:16,color:'var(--tx3)',fontSize:12}}>Click Generate to run AI prediction</div>}
+    </div>
+    {/* Nearby services summary */}
+    <div className="card" style={{marginBottom:12}}>
+      <div className="sec-hdr">EMERGENCY SERVICES COVERAGE</div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+        {[['🏥','4 Hospitals','Nearest: 1.2 mi','var(--red)'],['👮','4 Precincts','Nearest: 0.8 mi','var(--blu)']].map(([icon,ttl,sub,c])=>(
+          <div key={ttl} style={{background:'var(--bg1)',borderRadius:8,padding:10,border:`1px solid ${c}33`}}>
+            <div style={{fontSize:20,marginBottom:4}}>{icon}</div>
+            <div style={{fontSize:13,fontWeight:700,color:c}}>{ttl}</div>
+            <div style={{fontSize:10,color:'var(--tx2)'}}>{sub}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+    {/* Bright Data */}
+    <div className="card" style={{background:'var(--ambdark)',borderColor:'rgba(245,166,35,.2)'}}>
+      <div className="sec-hdr" style={{color:'var(--amb)'}}>🌐 BRIGHT DATA LAST CRAWL</div>
+      {HAZARDS.map((h,i)=>(
+        <div key={i} style={{display:'flex',gap:8,padding:'6px 0',borderBottom:i<HAZARDS.length-1?'1px solid var(--bd0)':'none'}}>
+          <span style={{fontSize:13}}>{h.icon}</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,color:'var(--tx1)',lineHeight:1.4}}>{h.desc.slice(0,55)}...</div>
+            <div style={{fontSize:9,color:'var(--tx2)'}}>{h.src} · {h.time}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>);
+}
+
+/* ═══════════════════ SCREEN 7: POST ACCIDENT ═══════════════════ */
+function PostAccident(){
+  const[tab,setTab]=useState('check');
+  const[checks,setChecks]=useState([
+    {id:1,t:'Move vehicle to safe location if possible',done:false},
+    {id:2,t:'Check yourself and passengers for injuries',done:false},
+    {id:3,t:'Call 911 if anyone is injured',done:false},
+    {id:4,t:'Document: photos of damage, scene, vehicles',done:false},
+    {id:5,t:'Exchange: name, insurance, license plate',done:false},
+    {id:6,t:'Get names/numbers of any witnesses',done:false},
+    {id:7,t:'File police report (required if damage > $250 in Alabama)',done:false},
+    {id:8,t:'Notify your insurance company today',done:false},
+  ]);
+  const[msgs,setMsgs]=useState([{role:'ai',t:"I'm your SafeStreet AI assistant. Are you safe? What happened?"}]);
+  const[inp,setInp]=useState('');
+  const[typing,setTyping]=useState(false);
+
+  const AI_RESP={car:"If no fluid leaks or airbag deployment, it may be driveable. Check tires, lights, and steering before driving. Document all damage with photos first.",police:"In Alabama, file a police report if damage exceeds $250 OR anyone is injured. Call MPD non-emergency: (334) 241-2651. Report within 30 days to avoid penalties.",insurance:"Call your insurer's claims line immediately — most are 24/7. Have ready: policy number, other driver's info, photos, and the police report number.",hurt:"Your safety is priority. Even minor-seeming symptoms like neck stiffness or headaches can indicate serious injury — see a doctor today. Keep all medical records for any claims.",hospital:"Nearest ER: Baptist Health Montgomery at 2105 E South Blvd (1.2 mi). Jackson Hospital at 1725 Pine St (2.8 mi). Both have 24/7 emergency care.",default:"Take a breath — you're doing the right things. Focus on safety first, then documentation. What specific question can I help you with right now?"};
+
+  function send(){
+    if(!inp.trim())return;
+    setMsgs(m=>[...m,{role:'user',t:inp}]);
+    setInp('');setTyping(true);
+    setTimeout(()=>{
+      const k=Object.keys(AI_RESP).find(k=>inp.toLowerCase().includes(k))||'default';
+      setMsgs(m=>[...m,{role:'ai',t:AI_RESP[k]}]);
+      setTyping(false);
+    },1800);
+  }
+
+  const done=checks.filter(c=>c.done).length;
+
+  return(<div className="page fade-up" style={{padding:16}}>
+    <h1 style={{fontSize:20,fontWeight:900,marginBottom:4}}>🏥 Post-Accident Hub</h1>
+    <p style={{fontSize:12,color:'var(--tx2)',marginBottom:14}}>Step-by-step guidance for right now</p>
+    <div className="tabs">
+      {[['check','✅ Checklist'],['chat','🤖 AI Help'],['hosp','🏥 Hospitals'],['pol','👮 Police']].map(([k,l])=>(
+        <button key={k} className={`tab${tab===k?' on':''}`} onClick={()=>setTab(k)}>{l}</button>
+      ))}
+    </div>
+    {tab==='check'&&<>
+      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+        <span style={{fontSize:13,color:'var(--tx2)'}}>{done}/{checks.length}</span>
+        <div className="prog-track" style={{flex:1}}>
+          <div className="prog-fill" style={{width:`${(done/checks.length)*100}%`,background:'var(--grn)'}}/>
+        </div>
+        <span className="badge b-grn">{Math.round((done/checks.length)*100)}%</span>
+      </div>
+      <div style={{display:'flex',flexDirection:'column',gap:7}}>
+        {checks.map(c=>(
+          <button key={c.id} className={`chk-item${c.done?' done':''}`} onClick={()=>setChecks(x=>x.map(i=>i.id===c.id?{...i,done:!i.done}:i))}>
+            <div className="chk-box">{c.done&&<span style={{fontSize:12,color:'#fff'}}>✓</span>}</div>
+            <span style={{fontSize:13,color:c.done?'var(--grn)':'var(--tx1)',textDecoration:c.done?'line-through':'none',lineHeight:1.5,textAlign:'left'}}>{c.t}</span>
+          </button>
+        ))}
+      </div>
+    </>}
+    {tab==='chat'&&<div style={{display:'flex',flexDirection:'column',height:'calc(100dvh - 240px)'}}>
+      <div style={{flex:1,overflowY:'auto',display:'flex',flexDirection:'column',gap:8,paddingBottom:10}}>
+        {msgs.map((m,i)=>(
+          <div key={i} className={`msg${m.role==='user'?' usr':' ai'}`}
+            style={{alignSelf:m.role==='user'?'flex-end':'flex-start'}}>{m.t}</div>
+        ))}
+        {typing&&<div className="msg ai" style={{alignSelf:'flex-start',display:'flex',gap:4,padding:'10px 14px'}}>
+          {[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:'50%',background:'var(--blu2)',animation:`wave 1.2s ease-in-out ${i*.2}s infinite`}}/>)}
+        </div>}
+      </div>
+      <div style={{display:'flex',gap:8}}>
+        <input className="inp" value={inp} onChange={e=>setInp(e.target.value)}
+          onKeyDown={e=>e.key==='Enter'&&send()}
+          placeholder="Ask anything... 'police report?' 'car ok?'" style={{flex:1}}/>
+        <button onClick={send} style={{padding:'0 16px',background:'var(--blu)',border:'none',borderRadius:10,color:'#fff',cursor:'pointer',fontSize:18}}>↑</button>
+      </div>
+    </div>}
+    {tab==='hosp'&&<div style={{display:'flex',flexDirection:'column',gap:10}}>
+      {HOSPITALS.map((h,i)=>(
+        <div key={i} className="card">
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+            <div style={{fontSize:14,fontWeight:800}}>{h.name}</div>
+            <div style={{display:'flex',gap:4,flexWrap:'wrap',justifyContent:'flex-end'}}>
+              <span className="badge b-grn">✅ OPEN</span>
+              {h.trauma&&<span className="badge b-red">🚑 Trauma</span>}
+            </div>
+          </div>
+          <div style={{fontSize:11,color:'var(--tx2)',marginBottom:10}}>📍 {h.addr} · {h.dist} · ~{h.eta}</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+            <a href={navUrl(h.lat,h.lng)} target="_blank" style={{padding:'9px',background:'var(--bludark)',border:'1px solid var(--bd2)',borderRadius:8,color:'var(--blu2)',textAlign:'center',fontSize:12,fontWeight:700,textDecoration:'none',fontFamily:'var(--font)'}}>📍 Navigate</a>
+            <a href={`tel:${h.phone}`} style={{padding:'9px',background:'var(--bg1)',border:'1px solid var(--bd0)',borderRadius:8,color:'var(--tx1)',textAlign:'center',fontSize:12,fontWeight:700,textDecoration:'none',fontFamily:'var(--font)'}}>📞 Call</a>
+          </div>
+        </div>
+      ))}
+      <div className="card" style={{background:'rgba(30,4,4,.8)',borderColor:'rgba(232,64,64,.2)'}}>
+        <div className="sec-hdr" style={{color:'var(--red)'}}>📱 EMERGENCY CONTACTS</div>
+        {[['911','Emergency Services','var(--red)'],['(334) 241-2651','MPD Non-Emergency','var(--blu2)'],['211','Crisis Resources Alabama','var(--amb)']].map(([n,l,c])=>(
+          <div key={n} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--bd0)',fontSize:13}}>
+            <span style={{color:'var(--tx2)'}}>{l}</span>
+            <a href={`tel:${n}`} style={{color:c,fontWeight:700,textDecoration:'none',fontFamily:'var(--mono)'}}>{n}</a>
+          </div>
+        ))}
+      </div>
+    </div>}
+    {tab==='pol'&&<div style={{display:'flex',flexDirection:'column',gap:10}}>
+      <div className="card-sm" style={{background:'var(--bludark)',borderColor:'var(--bd2)',marginBottom:4}}>
+        <p style={{fontSize:12,color:'#93c5fd',lineHeight:1.6}}>ℹ️ In Alabama, you must file a police report if: damage exceeds $250, anyone is injured, or a driver is uninsured. Call MPD non-emergency: (334) 241-2651</p>
+      </div>
+      {POLICE.map((p,i)=>(
+        <div key={i} className="card">
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+            <div style={{fontSize:14,fontWeight:800}}>{p.name}</div>
+            <span className="badge b-blu">✅ Active</span>
+          </div>
+          <div style={{fontSize:11,color:'var(--tx2)',marginBottom:10}}>📍 {p.addr} · {p.dist} · ~{p.eta}</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+            <a href={navUrl(p.lat,p.lng)} target="_blank" style={{padding:'9px',background:'var(--bludark)',border:'1px solid var(--bd2)',borderRadius:8,color:'var(--blu2)',textAlign:'center',fontSize:12,fontWeight:700,textDecoration:'none',fontFamily:'var(--font)'}}>📍 Navigate</a>
+            <a href={`tel:${p.phone}`} style={{padding:'9px',background:'var(--bg1)',border:'1px solid var(--bd0)',borderRadius:8,color:'var(--tx1)',textAlign:'center',fontSize:12,fontWeight:700,textDecoration:'none',fontFamily:'var(--font)'}}>📞 Call</a>
+          </div>
+        </div>
+      ))}
+    </div>}
+  </div>);
+}
+
+/* ═══════════════════ NAV BAR ═══════════════════ */
+function NavBar({page,setPage}){
+  const items=[
+    {id:'map',icon:'🗺️',label:'MAP'},
+    {id:'route',icon:'🛡️',label:'ROUTE'},
+    {id:'sos',icon:'🆘',label:'SOS'},
+    {id:'health',icon:'❤️',label:'HEALTH',dot:true},
+    {id:'dashboard',icon:'📊',label:'CITY'},
+    {id:'postaccident',icon:'🏥',label:'HELP'},
+  ];
+  return(<nav className="nav">
+    {items.map(it=>(
+      <button key={it.id} className={`nav-btn${page===it.id?' on':''}`} onClick={()=>setPage(it.id)}>
+        {it.dot&&<span className="n-dot"/>}
+        <span className="ni">{it.icon}</span>
+        <span className="nl">{it.label}</span>
+      </button>
+    ))}
+  </nav>);
+}
+
+/* ═══════════════════ APP ROOT ═══════════════════ */
+function App(){
+  const[page,setPage]=useState('map');
+
+  const screens={
+    map:<MapHome setPage={setPage}/>,
+    route:<RouteCheck/>,
+    sos:<SOSScreen/>,
+    health:<HealthMonitor setPage={setPage}/>,
+    responder:<ResponderScreen/>,
+    dashboard:<Dashboard/>,
+    postaccident:<PostAccident/>,
+    nearby:<NearbyScreen setPage={setPage}/>,
+  };
+
+  return(<div style={{height:'100dvh',display:'flex',flexDirection:'column'}}>
+    <div style={{flex:1,overflow:'hidden',position:'relative'}}>
+      {page==='map'?<div className="map-page">{screens.map}</div>:<div className="page">{screens[page]||screens.map}</div>}
+    </div>
+    <NavBar page={page} setPage={setPage}/>
+  </div>);
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+<style>
+/* Extra scan line animation for health monitor */
+@keyframes verticalScan{0%{top:0;opacity:1}100%{top:100%;opacity:0}}
+</style>
+</body>
+</html>
